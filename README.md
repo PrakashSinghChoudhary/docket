@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./assets/images/icon.png" width="128" height="128" alt="Docket App Icon" style="border-radius: 28px;" />
+</p>
+
 # Docket
 
 <p align="center">

@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import {
@@ -61,7 +62,13 @@ export default function ReminderHomeScreen() {
           showsVerticalScrollIndicator={false}>
           {/* Header Bar */}
           <View style={styles.header}>
-            <ThemedText style={styles.headerTitle}>Reminders</ThemedText>
+            <View style={styles.titleRow}>
+              <Image
+                source={require('@/assets/images/splash-icon.png')}
+                style={styles.headerIcon}
+              />
+              <ThemedText style={styles.headerTitle}>Reminders</ThemedText>
+            </View>
           </View>
 
           {/* Active Countdown Screen (Visible when reminder is running or paused) */}
@@ -145,6 +152,15 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingVertical: Spacing.one,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  headerIcon: {
+    width: 32,
+    height: 32,
   },
   headerTitle: {
     fontSize: 28,

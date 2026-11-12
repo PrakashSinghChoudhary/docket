@@ -6,6 +6,7 @@ import {
   TabTriggerSlotProps,
   TabListProps,
 } from 'expo-router/ui';
+import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { Pressable, useColorScheme, View, StyleSheet } from 'react-native';
 
@@ -54,9 +55,15 @@ export function CustomTabList(props: TabListProps) {
   return (
     <View {...props} style={styles.tabListContainer}>
       <ThemedView type="backgroundElement" style={styles.innerContainer}>
-        <ThemedText type="smallBold" style={styles.brandText}>
-          Docket
-        </ThemedText>
+        <View style={styles.brandRow}>
+          <Image
+            source={require('@/assets/images/splash-icon.png')}
+            style={styles.brandIcon}
+          />
+          <ThemedText type="smallBold" style={styles.brandText}>
+            Docket
+          </ThemedText>
+        </View>
 
         {props.children}
 
@@ -94,8 +101,19 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     maxWidth: MaxContentWidth,
   },
-  brandText: {
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     marginRight: 'auto',
+  },
+  brandIcon: {
+    width: 22,
+    height: 22,
+  },
+  brandText: {
+    fontSize: 15,
+    fontWeight: '700',
   },
   pressed: {
     opacity: 0.7,
