@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "reminder",
-    "slug": "reminder",
+    "name": "Docket",
+    "slug": "docket",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "reminder",
+    "scheme": "docket",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"
@@ -31,6 +31,15 @@
           "backgroundColor": "#208AEF",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
+        }
+      ],
+      "expo-audio",
+      [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./assets/sounds/beep.wav"
+          ]
         }
       ]
     ],

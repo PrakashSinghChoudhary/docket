@@ -1,180 +1,387 @@
-import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
-import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useState } from 'react';
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ExternalLink } from '@/components/external-link';
+import { DateStrip } from '@/components/tasks/date-strip';
+import { MonthArchive } from '@/components/tasks/month-archive';
+import { TaskInput } from '@/components/tasks/task-input';
+import { TaskItem } from '@/components/tasks/task-item';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { BottomTabInset, Spacing } from '@/constants/theme';
+import { useTasks } from '@/hooks/use-tasks';
 import { useTheme } from '@/hooks/use-theme';
+import { formatFriendlyDate, parseDateString } from '@/utils/date';
 
-export default function TabTwoScreen() {
+export default function TasksScreen() {
   const safeAreaInsets = useSafeAreaInsets();
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
-  };
   const theme = useTheme();
+  const isDark = theme.background === '#000000';
 
-  const contentPlatformStyle = Platform.select({
-    android: {
-      paddingTop: insets.top,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
-    },
-    web: {
-      paddingTop: Spacing.six,
-      paddingBottom: Spacing.four,
-    },
+  const {
+    todayDate,
+    selectedDate,
+    isToday,
+    tasks,
+    totalTasks,
+    completedTasks,
+    progressRatio,
+    monthSummaries,
+    unfinishedYesterdayCount,
+    setSelectedDate,
+    goToToday,
+    addTask,
+    toggleTask,
+    deleteTask,
+    carryOverYesterdayTasks,
+  } = useTasks();
+
+  const [showMonthArchive, setShowMonthArchive] = useState(false);
+  const [dismissedRollover, setDismissedRollover] = useState(false);
+
+  const selectedDateFriendly = formatFriendlyDate(selectedDate);
+  const selectedDateObj = parseDateString(selectedDate);
+  const fullDateText = selectedDateObj.toLocaleDateString([], {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
   });
 
   return (
-    <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="subtitle">Explore</ThemedText>
-          <ThemedText style={styles.centerText} themeColor="textSecondary">
-            This starter app includes example{'\n'}code to help you get started.
-          </ThemedText>
-
-          <ExternalLink href="https://docs.expo.dev" asChild>
-            <Pressable style={({ pressed }) => pressed && styles.pressed}>
-              <ThemedView type="backgroundElement" style={styles.linkButton}>
-                <ThemedText type="link">Expo documentation</ThemedText>
-                <SymbolView
-                  tintColor={theme.text}
-                  name={{ ios: 'arrow.up.right.square', android: 'link', web: 'link' }}
-                  size={12}
-                />
-              </ThemedView>
-            </Pressable>
-          </ExternalLink>
-        </ThemedView>
-
-        <ThemedView style={styles.sectionsWrapper}>
-          <Collapsible title="File-based routing">
-            <ThemedText type="small">
-              This app has two screens: <ThemedText type="code">src/app/index.tsx</ThemedText> and{' '}
-              <ThemedText type="code">src/app/explore.tsx</ThemedText>
-            </ThemedText>
-            <ThemedText type="small">
-              The layout file in <ThemedText type="code">src/app/_layout.tsx</ThemedText> sets up
-              the tab navigator.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/router/introduction">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Android, iOS, and web support">
-            <ThemedView type="backgroundElement" style={styles.collapsibleContent}>
-              <ThemedText type="small">
-                You can open this project on Android, iOS, and the web. To open the web version,
-                press <ThemedText type="smallBold">w</ThemedText> in the terminal running this
-                project.
+    <ThemedView style={styles.container}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingBottom:
+                safeAreaInsets.bottom + BottomTabInset + Spacing.five,
+            },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}>
+          {/* Header Bar */}
+          <View style={styles.header}>
+            <View>
+              <ThemedText style={styles.headerTitle}>Daily Tasks</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary" style={styles.headerSubtitle}>
+                {isToday ? `Today • ${fullDateText}` : `Viewing: ${fullDateText}`}
               </ThemedText>
-              <Image
-                source={require('@/assets/images/tutorial-web.png')}
-                style={styles.imageTutorial}
-              />
-            </ThemedView>
-          </Collapsible>
+            </View>
 
-          <Collapsible title="Images">
-            <ThemedText type="small">
-              For static images, you can use the <ThemedText type="code">@2x</ThemedText> and{' '}
-              <ThemedText type="code">@3x</ThemedText> suffixes to provide files for different
-              screen densities.
-            </ThemedText>
-            <Image source={require('@/assets/images/react-logo.png')} style={styles.imageReact} />
-            <ExternalLink href="https://reactnative.dev/docs/images">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
+            {!isToday && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.returnTodayButton,
+                  { backgroundColor: isDark ? '#FFFFFF' : '#000000' },
+                  pressed && styles.pressed,
+                ]}
+                onPress={goToToday}>
+                <ThemedText
+                  type="smallBold"
+                  style={{
+                    color: isDark ? '#000000' : '#FFFFFF',
+                    fontSize: 12,
+                  }}>
+                  Go to Today
+                </ThemedText>
+              </Pressable>
+            )}
+          </View>
 
-          <Collapsible title="Light and dark mode components">
-            <ThemedText type="small">
-              This template has light and dark mode support. The{' '}
-              <ThemedText type="code">useColorScheme()</ThemedText> hook lets you inspect what the
-              user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
+          {/* Date Selector Strip (Week Navigator & Month Shortcut) */}
+          <DateStrip
+            selectedDate={selectedDate}
+            todayDate={todayDate}
+            monthSummaries={monthSummaries}
+            onSelectDate={setSelectedDate}
+            onOpenMonthArchive={() => setShowMonthArchive((prev) => !prev)}
+            onGoToToday={goToToday}
+          />
 
-          <Collapsible title="Animations">
-            <ThemedText type="small">
-              This template includes an example of an animated component. The{' '}
-              <ThemedText type="code">src/components/ui/collapsible.tsx</ThemedText> component uses
-              the powerful <ThemedText type="code">react-native-reanimated</ThemedText> library to
-              animate opening this hint.
-            </ThemedText>
-          </Collapsible>
-        </ThemedView>
-        {Platform.OS === 'web' && <WebBadge />}
-      </ThemedView>
-    </ScrollView>
+          {/* Month Archive Calendar (Accessible Months Data) */}
+          {showMonthArchive && (
+            <MonthArchive
+              initialDate={selectedDate}
+              monthSummaries={monthSummaries}
+              onSelectDate={setSelectedDate}
+              onClose={() => setShowMonthArchive(false)}
+            />
+          )}
+
+          {/* Unfinished Yesterday Rollover Banner */}
+          {isToday &&
+            unfinishedYesterdayCount > 0 &&
+            !dismissedRollover && (
+              <View
+                style={[
+                  styles.rolloverCard,
+                  {
+                    backgroundColor: theme.backgroundElement,
+                    borderColor: theme.backgroundSelected,
+                  },
+                ]}>
+                <View style={styles.rolloverLeft}>
+                  <SymbolView
+                    name={{ ios: 'arrow.uturn.forward', android: 'redo', web: 'redo' }}
+                    size={16}
+                    tintColor="#10B981"
+                  />
+                  <ThemedText type="small" style={styles.rolloverText}>
+                    {unfinishedYesterdayCount} unfinished from yesterday
+                  </ThemedText>
+                </View>
+
+                <View style={styles.rolloverActions}>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.rolloverBtn,
+                      { backgroundColor: theme.backgroundSelected },
+                      pressed && styles.pressed,
+                    ]}
+                    onPress={carryOverYesterdayTasks}>
+                    <ThemedText type="smallBold" style={{ fontSize: 12 }}>
+                      Roll Over
+                    </ThemedText>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setDismissedRollover(true)}
+                    hitSlop={6}>
+                    <SymbolView
+                      name={{ ios: 'xmark', android: 'close', web: 'close' }}
+                      size={12}
+                      tintColor={theme.textSecondary}
+                    />
+                  </Pressable>
+                </View>
+              </View>
+            )}
+
+          {/* Progress Summary Card */}
+          {totalTasks > 0 && (
+            <View
+              style={[
+                styles.progressCard,
+                {
+                  backgroundColor: theme.backgroundElement,
+                  borderColor: theme.backgroundSelected,
+                },
+              ]}>
+              <View style={styles.progressTextRow}>
+                <ThemedText type="smallBold">
+                  {completedTasks} of {totalTasks} completed
+                </ThemedText>
+                <ThemedText
+                  type="small"
+                  style={[
+                    styles.progressPercent,
+                    { color: progressRatio === 1 ? '#10B981' : theme.textSecondary },
+                  ]}>
+                  {Math.round(progressRatio * 100)}%
+                </ThemedText>
+              </View>
+
+              {/* Progress Track */}
+              <View
+                style={[
+                  styles.progressTrack,
+                  { backgroundColor: theme.backgroundSelected },
+                ]}>
+                <View
+                  style={[
+                    styles.progressBar,
+                    {
+                      width: `${Math.round(progressRatio * 100)}%`,
+                      backgroundColor: progressRatio === 1 ? '#10B981' : isDark ? '#FFFFFF' : '#000000',
+                    },
+                  ]}
+                />
+              </View>
+            </View>
+          )}
+
+          {/* Add Task Input */}
+          <TaskInput
+            onAddTask={addTask}
+            isToday={isToday}
+            selectedDateFriendly={selectedDateFriendly}
+          />
+
+          {/* Tasks List */}
+          <View style={styles.taskList}>
+            {tasks.length > 0 ? (
+              tasks.map((task) => (
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  onToggle={toggleTask}
+                  onDelete={deleteTask}
+                />
+              ))
+            ) : (
+              <View
+                style={[
+                  styles.emptyCard,
+                  {
+                    backgroundColor: theme.backgroundElement,
+                    borderColor: theme.backgroundSelected,
+                  },
+                ]}>
+                <SymbolView
+                  name={{ ios: 'checklist', android: 'checklist', web: 'checklist' }}
+                  size={32}
+                  tintColor={theme.textSecondary}
+                />
+                <ThemedText type="smallBold" style={styles.emptyTitle}>
+                  {isToday ? 'No tasks for today yet' : `No tasks on ${selectedDateFriendly}`}
+                </ThemedText>
+                <ThemedText
+                  type="small"
+                  themeColor="textSecondary"
+                  style={styles.emptySubtitle}>
+                  {isToday
+                    ? 'Add tasks above to organize your day. Daily list resets overnight.'
+                    : 'You can add past notes or browse other days in the month.'}
+                </ThemedText>
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    width: '100%',
+  },
+  safeArea: {
+    flex: 1,
+    width: '100%',
+  },
   scrollView: {
     flex: 1,
+    width: '100%',
   },
-  contentContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  container: {
-    maxWidth: MaxContentWidth,
+  scrollContent: {
     flexGrow: 1,
-  },
-  titleContainer: {
-    gap: Spacing.three,
-    alignItems: 'center',
+    width: '100%',
     paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.six,
+    paddingTop: Platform.OS === 'web' ? Spacing.four : Spacing.two,
+    gap: Spacing.three,
   },
-  centerText: {
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.one,
+  },
+  headerTitle: {
+    fontSize: 28,
+    lineHeight: 36,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+    paddingBottom: 2,
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  returnTodayButton: {
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+  },
+  rolloverCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  rolloverLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  rolloverText: {
+    fontSize: 13,
+  },
+  rolloverActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  rolloverBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
+  progressCard: {
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 8,
+  },
+  progressTextRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  progressPercent: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  progressTrack: {
+    height: 5,
+    borderRadius: 2.5,
+    overflow: 'hidden',
+    width: '100%',
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 2.5,
+  },
+  taskList: {
+    gap: 8,
+    paddingTop: 4,
+  },
+  emptyCard: {
+    padding: Spacing.five,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
     textAlign: 'center',
+    gap: 8,
+    marginVertical: Spacing.three,
+  },
+  emptyTitle: {
+    fontSize: 15,
+    marginTop: 4,
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    textAlign: 'center',
+    maxWidth: 280,
+    lineHeight: 18,
   },
   pressed: {
     opacity: 0.7,
-  },
-  linkButton: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.five,
-    justifyContent: 'center',
-    gap: Spacing.one,
-    alignItems: 'center',
-  },
-  sectionsWrapper: {
-    gap: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
-  },
-  collapsibleContent: {
-    alignItems: 'center',
-  },
-  imageTutorial: {
-    width: '100%',
-    aspectRatio: 296 / 171,
-    borderRadius: Spacing.three,
-    marginTop: Spacing.two,
-  },
-  imageReact: {
-    width: 100,
-    height: 100,
-    alignSelf: 'center',
+    transform: [{ scale: 0.98 }],
   },
 });
