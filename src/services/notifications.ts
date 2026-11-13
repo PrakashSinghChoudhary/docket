@@ -75,43 +75,47 @@ export async function requestNotificationPermissionAsync(): Promise<boolean> {
 /**
  * Schedule a single reminder notification
  */
-  export async function scheduleSingleReminderNotificationAsync({
-    title,
-    seconds,
-  }: {
-    title: string;
-    seconds: number;
-  }): Promise<string | null> {
-    try {
-      if (Platform.OS === 'web') return null;
+export async function scheduleSingleReminderNotificationAsync({
+  title,
+  seconds,
+  isCancelled,
+}: {
+  title: string;
+  seconds: number;
+  isCancelled?: () => boolean;
+}): Promise<string | null> {
+  try {
+    if (Platform.OS === 'web') return null;
+    if (isCancelled && isCancelled()) return null;
 
-      await initializeNotificationsAsync();
+    await initializeNotificationsAsync();
+    if (isCancelled && isCancelled()) return null;
 
-      const id = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: title || 'Docket Reminder',
-          body: 'Timer completed!',
-          sound: 'default',
-          priority: AndroidNotificationPriority.MAX,
-        },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-          seconds: Math.max(1, Math.round(seconds)),
-          repeats: false,
-          channelId: REMINDER_CHANNEL_ID,
-        },
-      });
+    const id = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: title || 'Docket Reminder',
+        body: 'Timer completed!',
+        sound: 'default',
+        priority: AndroidNotificationPriority.MAX,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: Math.max(1, Math.round(seconds)),
+        repeats: false,
+        channelId: REMINDER_CHANNEL_ID,
+      },
+    });
 
-      return id;
-    } catch (err) {
-      console.warn('Could not schedule single notification:', err);
-      return null;
-    }
+    return id;
+  } catch (err) {
+    console.warn('Could not schedule single notification:', err);
+    return null;
   }
+}
 
 /**
  * Schedule recurring reminder notifications in advance
- * Schedules up to `cyclesCount` future chimes so that background/locked devices
+ * Schedules future chimes so that background/locked devices
  * will alert at every recurring interval even if the app remains in the background.
  */
 export async function scheduleRecurringNotificationsAsync({
@@ -119,11 +123,13 @@ export async function scheduleRecurringNotificationsAsync({
   firstCycleRemainingSeconds,
   intervalSeconds,
   cyclesCount = 6,
+  isCancelled,
 }: {
   title: string;
   firstCycleRemainingSeconds: number;
   intervalSeconds: number;
   cyclesCount?: number;
+  isCancelled?: () => boolean;
 }): Promise<string[]> {
   const ids: string[] = [];
   try {
@@ -132,6 +138,9 @@ export async function scheduleRecurringNotificationsAsync({
     await initializeNotificationsAsync();
 
     for (let i = 0; i < cyclesCount; i++) {
+      if (isCancelled && isCancelled()) {
+        break;
+      }
       const delaySeconds = Math.round(firstCycleRemainingSeconds + i * intervalSeconds);
       if (delaySeconds <= 0) continue;
 
@@ -192,12 +201,29 @@ export async function cancelMultipleNotificationsAsync(ids: string[]) {
 }
 
 /**
- * Cancel all scheduled notifications
+ * Dismiss all delivered notifications from the notification shade
+ */
+export async function dismissAllNotificationsAsync() {
+  try {
+    if (Platform.OS !== 'web') {
+      await Notifications.dismissAllNotificationsAsync();
+    }
+  } catch (err) {
+    console.warn('Error dismissing all notifications:', err);
+  }
+}
+
+/**
+ * Cancel all scheduled notifications and dismiss any delivered notifications.
+ * Operates directly on the system AlarmManager and NotificationManager.
  */
 export async function cancelAllNotificationsAsync() {
   try {
     if (Platform.OS !== 'web') {
-      await Notifications.cancelAllScheduledNotificationsAsync();
+      await Promise.all([
+        Notifications.cancelAllScheduledNotificationsAsync().catch(() => {}),
+        Notifications.dismissAllNotificationsAsync().catch(() => {}),
+      ]);
     }
   } catch (err) {
     console.warn('Error canceling all notifications:', err);
